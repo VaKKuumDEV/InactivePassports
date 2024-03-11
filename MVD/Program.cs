@@ -1,7 +1,4 @@
 using MVD.Services;
-using MVD.Util;
-using System;
-using System.Text.RegularExpressions;
 
 List<Service> services = new()
 {
@@ -22,9 +19,6 @@ List<MVD.Endpoints.Endpoint> endpoints = new()
 {
     new MVD.Endpoints.CheckerEndpoint(),
 };
-
-//BZipUnpacker.Unpack("D:\\Проекты\\asptest\\MVD\\MVD\\bin\\Debug\\net7.0\\list_of_expired_passports.csv.bz2", Utils.GetAppDir("Temp"));
-//PassportPacker.ReadCSV(new FileInfo(Utils.GetAppDir("Temp") + "/list_of_expired_passports.csv").FullName);
 
 var builder = WebApplication.CreateBuilder(args);
 builder.Logging.ClearProviders().AddConsole();
