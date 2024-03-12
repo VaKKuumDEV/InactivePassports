@@ -1,4 +1,6 @@
+using MVD.Endpoints;
 using MVD.Services;
+using MVD.Util;
 
 List<Service> services = new()
 {
@@ -15,25 +17,34 @@ Thread tickThread = new(new ThreadStart(() =>
 }));
 tickThread.Start();
 
-List<MVD.Endpoints.Endpoint> endpoints = new()
-{
-    new MVD.Endpoints.CheckerEndpoint(),
-};
-
 var builder = WebApplication.CreateBuilder(args);
 builder.Logging.ClearProviders().AddConsole();
 
 var app = builder.Build();
-
-foreach (MVD.Endpoints.Endpoint endpoint in endpoints)
-{
-    if (endpoint.Type == MVD.Endpoints.Endpoint.Types.GET)
-    {
-        app.MapGet("/api/" + endpoint.Name, async () => (await endpoint.Execute()).ToJson());
-        if (endpoint.HasIdParam) app.MapGet("/api/" + endpoint.Name + "/{id}", async (string id) => (await endpoint.Execute(id)).ToJson());
-    }
-}
+app.UseRouting();
 
 app.MapGet("/", () => "Hello World!");
+
+app.MapGet("/api/check/{id:regex(^\\d{{10}}$)}/", async (HttpContext context, string id) =>
+{
+    PassportsService.CheckPassportServiceTask task = new(id);
+    if (!task.CanExecute()) await context.SetAnswer(new(EndpointAnswer.ERROR_CODE, Messages.NOT_INITED_ERROR));
+    else
+    {
+        ServiceTaskResult? checkResult = await PassportsService.Instance.ExecuteTask(task);
+        if (checkResult == null) await context.SetAnswer(new(EndpointAnswer.ERROR_CODE, Messages.ERROR));
+        else
+        {
+            object? containsObj = checkResult.Get();
+            if (containsObj == null) await context.SetAnswer(new(EndpointAnswer.ERROR_CODE, Messages.ERROR));
+            else
+            {
+                bool contains = (bool)containsObj;
+                if (contains) await context.SetAnswer(new(EndpointAnswer.SUCCESS_CODE, Messages.PASSPORT_FOUND_MESSAGE, new() { ["contains"] = true, }));
+                else await context.SetAnswer(new(EndpointAnswer.SUCCESS_CODE, Messages.PASSPORT_NOT_FOUND_MESSAGE, new() { ["contains"] = false, }));
+            }
+        }
+    }
+});
 
 app.Run();

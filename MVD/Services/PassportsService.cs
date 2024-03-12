@@ -1,10 +1,13 @@
 ﻿using MVD.Util;
-using static MVD.Services.PassportsService.CheckPassportServiceTask;
+using System.Net;
+using System;
 
 namespace MVD.Services
 {
     public class PassportsService : Service
     {
+        public const string PASSPORT_BASE_LINK = "http://xn--b1ab2a0a.xn--b1aew.xn--p1ai/upload/expired-passports/list_of_expired_passports.csv.bz2";
+        
         public class CheckPassportServiceTask : ServiceTask
         {
             public class CheckPassportServiceTaskResult : ServiceTaskResult
@@ -66,10 +69,33 @@ namespace MVD.Services
                 Logger.Info("Начало инициализации базы паспортов");
 
                 string dataFilename = new FileInfo(Utils.GetAppDir() + "/data.csv").FullName;
+                string packedFilename = new FileInfo(Utils.GetAppDir("Temp") + "/list_of_expired_passports.csv").FullName;
+                string archiveFilename = new FileInfo(Utils.GetAppDir("Temp") + "/archive.bz2").FullName;
 
-                Dictionary<uint, List<ushort>> records;
-                if (!File.Exists(dataFilename)) records = PassportPacker.ReadCSV(new FileInfo(Utils.GetAppDir("Temp") + "/list_of_expired_passports.csv").FullName);
-                else records = PassportPacker.ReadPreparedCsv(dataFilename);
+                Dictionary<uint, List<ushort>> records = new();
+                if (File.Exists(dataFilename)) records = PassportPacker.ReadPreparedCsv(dataFilename);
+                else if (File.Exists(packedFilename)) records = PassportPacker.ReadCSV(packedFilename);
+                else {
+                    Logger.Info("Начало загрузки " + archiveFilename);
+                    int lastPercentage = 0;
+                    using WebClient wc = new();
+                    wc.DownloadProgressChanged += new((sender, args) => {
+                        if (args.ProgressPercentage > lastPercentage)
+                        {
+                            Logger.Info("Прогресс " + new FileInfo(PASSPORT_BASE_LINK).Name + ": " + args.ProgressPercentage + "%");
+                            lastPercentage = args.ProgressPercentage;
+                        }
+                    });
+                    wc.DownloadFileCompleted += new((sender, args) =>
+                    {
+                        BZipUnpacker.Unpack(archiveFilename, Utils.GetAppDir("Temp"));
+                        File.Delete(archiveFilename);
+                        records = PassportPacker.ReadCSV(packedFilename);
+                        File.Delete(packedFilename);
+                    });
+                    Task task = wc.DownloadFileTaskAsync(PASSPORT_BASE_LINK, archiveFilename);
+                    task.GetAwaiter().GetResult();
+                }
 
                 lock (locker)
                 {

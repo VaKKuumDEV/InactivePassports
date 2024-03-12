@@ -21,7 +21,7 @@ namespace MVD.Endpoints
 
         public EndpointAnswer(int code, string message) : this(code, message, new()) { }
 
-        public string ToJson()
+        public override string ToString()
         {
             JObject data = new()
             {
