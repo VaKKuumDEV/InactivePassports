@@ -23,7 +23,7 @@ builder.Logging.ClearProviders().AddConsole();
 var app = builder.Build();
 app.UseRouting();
 
-//app.MapGet("/", () => "Hello World!");
+app.MapGet("/", () => "Hello World!");
 
 app.MapGet("/api/check/{id:regex(^\\d{{10}}$)}/", async (HttpContext context, string id) =>
 {
