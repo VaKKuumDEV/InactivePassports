@@ -1,18 +1,18 @@
-﻿namespace MVD.Services
+﻿namespace MVD.Jobbers
 {
-    public abstract class ServiceTaskResult
+    public abstract class JobberTaskResult
     {
         public abstract object? Get();
     }
 
-    public abstract class ServiceTask
+    public abstract class JobberTask
     {
         public int TaskId { get; }
         public bool IsBusy { get; set; } = false;
         public bool IsCompleted { get; set; } = false;
-        public ServiceTaskResult? Result { get; set; } = null;
+        public JobberTaskResult? Result { get; set; } = null;
 
-        public ServiceTask()
+        public JobberTask()
         {
             TaskId = new Random().Next(10000, 99999);
         }

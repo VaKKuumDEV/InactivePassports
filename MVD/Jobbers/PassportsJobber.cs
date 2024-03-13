@@ -1,19 +1,18 @@
 ﻿using MVD.Util;
 using System.Net;
-using System;
 
-namespace MVD.Services
+namespace MVD.Jobbers
 {
-    public class PassportsService : Service
+    public class PassportsJobber : Jobber
     {
         public const string PASSPORT_BASE_LINK = "http://xn--b1ab2a0a.xn--b1aew.xn--p1ai/upload/expired-passports/list_of_expired_passports.csv.bz2";
         
-        public class CheckPassportServiceTask : ServiceTask
+        public class CheckPassportJobberTask : JobberTask
         {
-            public class CheckPassportServiceTaskResult : ServiceTaskResult
+            public class CheckPassportJobberTaskResult : JobberTaskResult
             {
                 public bool Result { get; }
-                public CheckPassportServiceTaskResult(bool result)
+                public CheckPassportJobberTaskResult(bool result)
                 {
                     Result = result;
                 }
@@ -25,7 +24,7 @@ namespace MVD.Services
             }
 
             private readonly string _serialNumber;
-            public CheckPassportServiceTask(string serialNumber)
+            public CheckPassportJobberTask(string serialNumber)
             {
                 _serialNumber = serialNumber;
             }
@@ -47,17 +46,17 @@ namespace MVD.Services
                         if (values.Contains(val))
                         {
                             contains = true;
-                            Result = new CheckPassportServiceTaskResult(true);
+                            Result = new CheckPassportJobberTaskResult(true);
                         }
                     }
                 }
 
-                if (!contains) Result = new CheckPassportServiceTaskResult(false);
+                if (!contains) Result = new CheckPassportJobberTaskResult(false);
                 IsCompleted = true;
             }
         }
 
-        public class UploadDataServiceTask : ServiceTask
+        public class UploadDataJobberTask : JobberTask
         {
             public override bool CanExecute()
             {
@@ -108,8 +107,8 @@ namespace MVD.Services
             }
         }
 
-        private static PassportsService? _instance = null;
-        public static PassportsService Instance
+        private static PassportsJobber? _instance = null;
+        public static PassportsJobber Instance
         {
             get
             {
@@ -122,9 +121,9 @@ namespace MVD.Services
         public Dictionary<uint, List<ushort>> _records = new();
         public bool DatabaseInited { get; private set; } = false;
 
-        public PassportsService() : base("PassportsService")
+        public PassportsJobber() : base("PassportsService")
         {
-            _tasks.Add(new UploadDataServiceTask());
+            _tasks.Add(new UploadDataJobberTask());
 
             _instance = this;
         }

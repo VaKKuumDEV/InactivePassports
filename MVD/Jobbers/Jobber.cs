@@ -1,12 +1,12 @@
-﻿namespace MVD.Services
+﻿namespace MVD.Jobbers
 {
-    public abstract class Service
+    public abstract class Jobber
     {
         public string Name { get; set; }
-        protected List<ServiceTask> _tasks = new();
+        protected List<JobberTask> _tasks = new();
         protected int _inWorkCount = 0;
 
-        public Service(string name)
+        public Jobber(string name)
         {
             Name = name;
         }
@@ -31,7 +31,7 @@
             }
         }
 
-        public async Task<ServiceTaskResult?> ExecuteTask(ServiceTask task)
+        public async Task<JobberTaskResult?> ExecuteTask(JobberTask task)
         {
             _tasks.Add(task);
             await Task.Run(() =>

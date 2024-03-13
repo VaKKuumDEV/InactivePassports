@@ -1,17 +1,17 @@
 using MVD.Endpoints;
-using MVD.Services;
+using MVD.Jobbers;
 using MVD.Util;
 
-List<Service> services = new()
+List<Jobber> jobbers = new()
 {
-    new PassportsService(),
+    new PassportsJobber(),
 };
 
 Thread tickThread = new(new ThreadStart(() =>
 {
     while (true)
     {
-        foreach (Service service in services) service.Tick();
+        foreach (Jobber jobber in jobbers) jobber.Tick();
         Thread.Sleep(1);
     }
 }));
@@ -27,11 +27,11 @@ app.MapGet("/", () => "Hello World!");
 
 app.MapGet("/api/check/{id:regex(^\\d{{10}}$)}/", async (HttpContext context, string id) =>
 {
-    PassportsService.CheckPassportServiceTask task = new(id);
+    PassportsJobber.CheckPassportJobberTask task = new(id);
     if (!task.CanExecute()) await context.SetAnswer(new(EndpointAnswer.ERROR_CODE, Messages.NOT_INITED_ERROR));
     else
     {
-        ServiceTaskResult? checkResult = await PassportsService.Instance.ExecuteTask(task);
+        JobberTaskResult? checkResult = await PassportsJobber.Instance.ExecuteTask(task);
         if (checkResult == null) await context.SetAnswer(new(EndpointAnswer.ERROR_CODE, Messages.ERROR));
         else
         {
