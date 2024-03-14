@@ -5,8 +5,6 @@ namespace MVD.Jobbers
 {
     public class PassportsJobber : Jobber
     {
-        public const string PASSPORT_BASE_LINK = "http://xn--b1ab2a0a.xn--b1aew.xn--p1ai/upload/expired-passports/list_of_expired_passports.csv.bz2";
-        
         public class CheckPassportJobberTask : JobberTask
         {
             public class CheckPassportJobberTaskResult : JobberTaskResult
@@ -29,10 +27,7 @@ namespace MVD.Jobbers
                 _serialNumber = serialNumber;
             }
 
-            public override bool CanExecute()
-            {
-                return Instance.DatabaseInited;
-            }
+            public override bool CanExecute() => Instance.DatabaseInited;
 
             public override void Execute()
             {
@@ -41,7 +36,7 @@ namespace MVD.Jobbers
                 {
                     (uint key, ushort val) = PassportPacker.Convert(_serialNumber);
 
-                    if (Instance._records.TryGetValue(key, out List<ushort> values))
+                    if (Instance._records.TryGetValue(key, out var values))
                     {
                         if (values.Contains(val))
                         {
@@ -58,10 +53,7 @@ namespace MVD.Jobbers
 
         public class UploadDataJobberTask : JobberTask
         {
-            public override bool CanExecute()
-            {
-                return true;
-            }
+            public override bool CanExecute() => true;
 
             public override void Execute()
             {
@@ -69,31 +61,14 @@ namespace MVD.Jobbers
 
                 string dataFilename = new FileInfo(Utils.GetAppDir() + "/data.csv").FullName;
                 string packedFilename = new FileInfo(Utils.GetAppDir("Temp") + "/list_of_expired_passports.csv").FullName;
-                string archiveFilename = new FileInfo(Utils.GetAppDir("Temp") + "/archive.bz2").FullName;
 
-                Dictionary<uint, List<ushort>> records = new();
+                Dictionary<uint, List<ushort>> records;
                 if (File.Exists(dataFilename)) records = PassportPacker.ReadPreparedCsv(dataFilename);
                 else if (File.Exists(packedFilename)) records = PassportPacker.ReadCSV(packedFilename);
                 else {
-                    Logger.Info("Начало загрузки " + archiveFilename);
-                    int lastPercentage = 0;
-                    using WebClient wc = new();
-                    wc.DownloadProgressChanged += new((sender, args) => {
-                        if (args.ProgressPercentage > lastPercentage)
-                        {
-                            Logger.Info("Прогресс " + new FileInfo(PASSPORT_BASE_LINK).Name + ": " + args.ProgressPercentage + "%");
-                            lastPercentage = args.ProgressPercentage;
-                        }
-                    });
-                    wc.DownloadFileCompleted += new((sender, args) =>
-                    {
-                        BZipUnpacker.Unpack(archiveFilename, Utils.GetAppDir("Temp"));
-                        File.Delete(archiveFilename);
-                        records = PassportPacker.ReadCSV(packedFilename);
-                        File.Delete(packedFilename);
-                    });
-                    Task task = wc.DownloadFileTaskAsync(PASSPORT_BASE_LINK, archiveFilename);
-                    task.GetAwaiter().GetResult();
+                    UpdaterJobber.Instance.ExecuteTask(new UpdaterJobber.UpdaterJobberTask()).GetAwaiter().GetResult();
+                    records = PassportPacker.ReadCSV(packedFilename);
+                    File.Delete(packedFilename);
                 }
 
                 lock (locker)
@@ -117,10 +92,10 @@ namespace MVD.Jobbers
             }
         }
 
-        public static object locker = new();
-        public Dictionary<uint, List<ushort>> _records = new();
+        private static readonly object locker = new();
+        private Dictionary<uint, List<ushort>> _records = new();
         public bool DatabaseInited { get; private set; } = false;
-
+        
         public PassportsJobber() : base("PassportsService")
         {
             _tasks.Add(new UploadDataJobberTask());
@@ -128,9 +103,6 @@ namespace MVD.Jobbers
             _instance = this;
         }
 
-        public override int GetMaxQueueSize()
-        {
-            return 3;
-        }
+        public override int GetMaxQueueSize() => 3;
     }
 }

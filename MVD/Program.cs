@@ -1,10 +1,18 @@
 using MVD.Endpoints;
 using MVD.Jobbers;
+using MVD.Schedulers;
 using MVD.Util;
+using Newtonsoft.Json;
+
+string configPath = new FileInfo(Utils.GetAppDir() + "/config.json").FullName;
+Config config = new();
+if (File.Exists(configPath)) config = JsonConvert.DeserializeObject<Config>(File.ReadAllText(configPath)) ?? new();
+else File.WriteAllText(configPath, JsonConvert.SerializeObject(config, Formatting.Indented));
 
 List<Jobber> jobbers = new()
 {
     new PassportsJobber(),
+    new UpdaterJobber(config.Link),
 };
 
 Thread tickThread = new(new ThreadStart(() =>
@@ -16,6 +24,8 @@ Thread tickThread = new(new ThreadStart(() =>
     }
 }));
 tickThread.Start();
+
+UpdateScheduler.Start(config.UpdateTime);
 
 var builder = WebApplication.CreateBuilder(args);
 builder.Logging.ClearProviders().AddConsole();
