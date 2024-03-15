@@ -13,12 +13,13 @@ namespace MVD.Jobbers
 
             public override void Execute()
             {
-                JobberTaskResult? result = Instance.ExecuteTask(new DownloadJobberTask()).GetAwaiter().GetResult();
+                DownloadJobberTask downloadTask = new();
+                downloadTask.Execute();
 
                 Dictionary<uint, List<ushort>> records = new();
-                if (result != null)
+                if (downloadTask.Result != null)
                 {
-                    if (result is DownloadJobberTask.DownloadJobberTaskResult dowloadResult)
+                    if (downloadTask.Result is DownloadJobberTask.DownloadJobberTaskResult dowloadResult)
                     {
                         records = PassportPacker.ReadCSV(dowloadResult.File);
                         File.Delete(dowloadResult.File);
@@ -55,7 +56,8 @@ namespace MVD.Jobbers
                 Logger.Info("Начало загрузки " + archiveFilename);
                 int lastPercentage = 0;
                 using WebClient wc = new();
-                wc.DownloadProgressChanged += new((sender, args) => {
+                wc.DownloadProgressChanged += new((sender, args) =>
+                {
                     if (args.ProgressPercentage > lastPercentage)
                     {
                         Logger.Info("Прогресс " + new FileInfo(Instance.Link).Name + ": " + args.ProgressPercentage + "%");
@@ -92,6 +94,6 @@ namespace MVD.Jobbers
             Link = link;
         }
 
-        public override int GetMaxQueueSize() => 2;
+        public override int GetMaxQueueSize() => 1;
     }
 }
