@@ -7,11 +7,42 @@ namespace MVD.Jobbers
     {
         public class UpdaterJobberTask : JobberTask
         {
-            public bool NeedUpdateRecords { get; }
+            public UpdaterJobberTask() : base() { }
 
-            public UpdaterJobberTask(bool needUpdateRecords = false) : base()
+            public override bool CanExecute() => true;
+
+            public override void Execute()
             {
-                NeedUpdateRecords = needUpdateRecords;
+                JobberTaskResult? result = Instance.ExecuteTask(new DownloadJobberTask()).GetAwaiter().GetResult();
+
+                Dictionary<uint, List<ushort>> records = new();
+                if (result != null)
+                {
+                    if (result is DownloadJobberTask.DownloadJobberTaskResult dowloadResult)
+                    {
+                        records = PassportPacker.ReadCSV(dowloadResult.File);
+                        File.Delete(dowloadResult.File);
+
+                        //сделать проверку на изменения
+
+                        _ = PassportsJobber.Instance.ExecuteTask(new PassportsJobber.UploadDataJobberTask());
+                    }
+                }
+            }
+        }
+
+        public class DownloadJobberTask : JobberTask
+        {
+            public class DownloadJobberTaskResult : JobberTaskResult
+            {
+                public string File { get; }
+
+                public DownloadJobberTaskResult(string path)
+                {
+                    File = path;
+                }
+
+                public override object? Get() => File;
             }
 
             public override bool CanExecute() => true;
@@ -39,7 +70,7 @@ namespace MVD.Jobbers
                 Task task = wc.DownloadFileTaskAsync(Instance.Link, archiveFilename);
                 task.GetAwaiter().GetResult();
 
-                if (NeedUpdateRecords) _ = PassportsJobber.Instance.ExecuteTask(new PassportsJobber.UploadDataJobberTask());
+                Result = new DownloadJobberTaskResult(packedFilename);
             }
         }
 

@@ -60,15 +60,20 @@ namespace MVD.Jobbers
                 Logger.Info("Начало инициализации базы паспортов");
 
                 string dataFilename = new FileInfo(Utils.GetAppDir() + "/data.csv").FullName;
-                string packedFilename = new FileInfo(Utils.GetAppDir("Temp") + "/list_of_expired_passports.csv").FullName;
 
-                Dictionary<uint, List<ushort>> records;
+                Dictionary<uint, List<ushort>> records = new();
                 if (File.Exists(dataFilename)) records = PassportPacker.ReadPreparedCsv(dataFilename);
-                else if (File.Exists(packedFilename)) records = PassportPacker.ReadCSV(packedFilename);
                 else {
-                    UpdaterJobber.Instance.ExecuteTask(new UpdaterJobber.UpdaterJobberTask()).GetAwaiter().GetResult();
-                    records = PassportPacker.ReadCSV(packedFilename);
-                    File.Delete(packedFilename);
+                    JobberTaskResult? result = UpdaterJobber.Instance.ExecuteTask(new UpdaterJobber.DownloadJobberTask()).GetAwaiter().GetResult();
+
+                    if (result != null)
+                    {
+                        if (result is UpdaterJobber.DownloadJobberTask.DownloadJobberTaskResult dowloadResult)
+                        {
+                            records = PassportPacker.ReadCSV(dowloadResult.File);
+                            File.Delete(dowloadResult.File);
+                        }
+                    }
                 }
 
                 lock (locker)
