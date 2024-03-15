@@ -12,6 +12,7 @@ else File.WriteAllText(configPath, JsonConvert.SerializeObject(config, Formattin
 List<Jobber> jobbers = new()
 {
     new PassportsJobber(),
+    new ActionsJobber(),
     new UpdaterJobber(config.Link),
 };
 

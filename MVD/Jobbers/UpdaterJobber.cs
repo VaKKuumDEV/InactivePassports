@@ -24,7 +24,8 @@ namespace MVD.Jobbers
                         records = PassportPacker.ReadCSV(dowloadResult.File);
                         File.Delete(dowloadResult.File);
 
-                        //сделать проверку на изменения
+                        ActionsJobber.UpdateActionsJobberTask task = new(records);
+                        task.Execute();
 
                         _ = PassportsJobber.Instance.ExecuteTask(new PassportsJobber.UploadDataJobberTask());
                     }

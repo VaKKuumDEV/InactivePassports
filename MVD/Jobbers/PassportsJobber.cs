@@ -108,6 +108,11 @@ namespace MVD.Jobbers
             _instance = this;
         }
 
+        public Dictionary<uint, List<ushort>> GetRecords()
+        {
+            return new(_records);
+        }
+
         public override int GetMaxQueueSize() => 3;
     }
 }
