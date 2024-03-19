@@ -1,5 +1,7 @@
 ﻿using CsvHelper;
 using CsvHelper.Configuration;
+using MVD.Jobbers;
+using Newtonsoft.Json;
 using System.Globalization;
 
 namespace MVD.Util
@@ -76,6 +78,17 @@ namespace MVD.Util
             }
 
             return records;
+        }
+
+        public static List<ActionsJobber.RecordAction> LoadActions(string filename)
+        {
+            if (!File.Exists(filename)) return new();
+            return JsonConvert.DeserializeObject<List<ActionsJobber.RecordAction>>(File.ReadAllText(filename)) ?? new();
+        }
+
+        public static void SaveActions(List<ActionsJobber.RecordAction> actions, string filename)
+        {
+            File.WriteAllText(filename, JsonConvert.SerializeObject(actions));
         }
     }
 }

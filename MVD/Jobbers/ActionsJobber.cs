@@ -1,4 +1,8 @@
-﻿namespace MVD.Jobbers
+﻿using MVD.Util;
+using Newtonsoft.Json;
+using Newtonsoft.Json.Serialization;
+
+namespace MVD.Jobbers
 {
     public class ActionsJobber : Jobber
     {
@@ -37,12 +41,31 @@
 
                 lock (Instance.locker)
                 {
-                    Instance.actions.AddRange(actions);
+                    Instance.actions.AddRange(actions.Distinct());
+                    PassportPacker.SaveActions(Instance.actions, new FileInfo(Utils.GetAppDir() + "/actions.json").FullName);
                 }
             }
         }
 
-        public readonly struct RecordAction
+        public class LoadActionsJobberTask : JobberTask
+        {
+            public override bool CanExecute() => true;
+
+            public override void Execute()
+            {
+                Logger.Info("Начало загрузки списка активности паспортов");
+
+                List<RecordAction> actions = PassportPacker.LoadActions(new FileInfo(Utils.GetAppDir() + "/actions.json").FullName);
+                lock (Instance.locker)
+                {
+                    Instance.actions = actions;
+                }
+
+                Logger.Info("Конец загрузки списка активности паспортов");
+            }
+        }
+
+        public struct RecordAction
         {
             public enum Actions
             {
@@ -50,9 +73,9 @@
                 OUT,
             };
 
-            public Actions Action { get; }
-            public string Number { get; }
-            public DateTime ActionDate { get; }
+            [JsonProperty("action")] public Actions Action { get; set; }
+            [JsonProperty("number")] public string Number { get; set; }
+            [JsonProperty("date")] public DateTime ActionDate { get; set; }
 
             public RecordAction(string number, Actions action)
             {
@@ -79,6 +102,8 @@
 
         public ActionsJobber() : base("ActionsJobber")
         {
+            _tasks.Add(new LoadActionsJobberTask());
+
             _instance = this;
         }
 
