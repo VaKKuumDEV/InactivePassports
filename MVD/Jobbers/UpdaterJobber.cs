@@ -15,13 +15,11 @@ namespace MVD.Jobbers
             {
                 DownloadJobberTask downloadTask = new();
                 downloadTask.Execute();
-
-                Dictionary<uint, List<ushort>> records = new();
                 if (downloadTask.Result != null)
                 {
                     if (downloadTask.Result is DownloadJobberTask.DownloadJobberTaskResult dowloadResult)
                     {
-                        records = PassportPacker.ReadCSV(dowloadResult.File);
+                        Dictionary<uint, List<ushort>> records = PassportPacker.ReadCSV(dowloadResult.File);
                         File.Delete(dowloadResult.File);
 
                         ActionsJobber.UpdateActionsJobberTask task = new(records);
@@ -30,6 +28,8 @@ namespace MVD.Jobbers
                         _ = PassportsJobber.Instance.ExecuteTask(new PassportsJobber.UploadDataJobberTask());
                     }
                 }
+
+                IsCompleted = true;
             }
         }
 
@@ -74,6 +74,7 @@ namespace MVD.Jobbers
                 task.GetAwaiter().GetResult();
 
                 Result = new DownloadJobberTaskResult(packedFilename);
+                IsCompleted = true;
             }
         }
 
