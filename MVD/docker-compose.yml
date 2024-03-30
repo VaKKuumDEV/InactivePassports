@@ -1,0 +1,21 @@
+version: "3"
+services:
+  server:
+    image: mvd:dev
+    build:
+      context: ../
+      dockerfile: MVD/Dockerfile
+    ports:
+      - 80:80
+      - 443:443
+    #volumes:
+      #- ./Data:/app/Data
+  quartz:
+    image: wilchn/blazingquartzapp:latest
+    #network_mode: host
+    depends_on:
+      - server
+    ports:
+      - 9090:80
+    volumes:
+      - ./Data/quartznet.db:/app/BlazingQuartzDb.db
