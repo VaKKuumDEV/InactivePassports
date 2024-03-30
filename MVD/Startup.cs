@@ -77,6 +77,8 @@ namespace MVD
             {
                 options.WaitForJobsToComplete = true;
             });
+
+            services.AddControllers();
         }
 
         public void Configure(IApplicationBuilder app, IWebHostEnvironment env)
@@ -88,74 +90,11 @@ namespace MVD
 
             app.UseRouting();
 
+            
+
             app.UseEndpoints(endpoints =>
             {
-                endpoints.MapGet("/", () => "Hello World!");
-
-                endpoints.MapGet("/api/check/{id:regex(^\\d{{10}}$)}/", async (HttpContext context, PassportsJobber jobber, string id) =>
-                {
-                    PassportsJobber.CheckPassportJobberTask task = new(id);
-                    if (!task.CanExecute()) await context.SetAnswer(new(EndpointAnswer.ERROR_CODE, Messages.NOT_INITED_ERROR));
-                    else
-                    {
-                        if (await jobber.ExecuteTask(task) is not PassportsJobber.CheckPassportJobberTask.CheckPassportJobberTaskResult checkResult) await context.SetAnswer(new(EndpointAnswer.ERROR_CODE, Messages.ERROR));
-                        else
-                        {
-                            object? containsObj = checkResult.Get();
-                            if (containsObj == null) await context.SetAnswer(new(EndpointAnswer.ERROR_CODE, Messages.ERROR));
-                            else
-                            {
-                                bool contains = (bool)containsObj;
-                                if (contains) await context.SetAnswer(new(EndpointAnswer.SUCCESS_CODE, Messages.PASSPORT_FOUND_MESSAGE, new() { ["contains"] = true, }));
-                                else await context.SetAnswer(new(EndpointAnswer.SUCCESS_CODE, Messages.PASSPORT_NOT_FOUND_MESSAGE, new() { ["contains"] = false, }));
-                            }
-                        }
-                    }
-                });
-
-                endpoints.MapGet("/api/actions/{dateFrom:regex([0-9]{{2}}.[0-9]{{2}}.[0-9]{{4}}$)}-{dateTo:regex([0-9]{{2}}.[0-9]{{2}}.[0-9]{{4}}$)}/", async (HttpContext context, string dateFrom, string dateTo) =>
-                {
-                    DateTime dateFromObj;
-                    try
-                    {
-                        dateFromObj = DateTime.Parse(dateFrom);
-                    }
-                    catch (Exception)
-                    {
-                        await context.SetAnswer(new(EndpointAnswer.ERROR_CODE, Messages.PARSING_DATE_FROM_ERROR));
-                        return;
-                    }
-
-                    DateTime dateToObj;
-                    try
-                    {
-                        dateToObj = DateTime.Parse(dateTo);
-                    }
-                    catch (Exception)
-                    {
-                        await context.SetAnswer(new(EndpointAnswer.ERROR_CODE, Messages.PARSING_DATE_TO_ERROR));
-                        return;
-                    }
-
-                    ActionsJobber.DateActionsJobberTask task = new(dateFromObj, dateToObj);
-                    if (!task.CanExecute()) await context.SetAnswer(new(EndpointAnswer.ERROR_CODE, Messages.NOT_INITED_ERROR));
-                    else
-                    {
-                        if (await ActionsJobber.Instance.ExecuteTask(task) is not ActionsJobber.DateActionsJobberTask.DateActionsJobberTaskResult result) await context.SetAnswer(new(EndpointAnswer.ERROR_CODE, Messages.ERROR));
-                        else await context.SetAnswer(new(EndpointAnswer.SUCCESS_CODE, Messages.ACTIONS_BY_DATE_MESSAGE, new() { ["actions"] = result.Actions }));
-                    }
-                });
-
-                endpoints.MapGet("/api/find/{id:regex(^\\d{{10}}$)}/", async (HttpContext context, string id) =>
-                {
-                    ActionsJobber.FindActionsJobberTask task = new(id);
-                    if (!task.CanExecute()) await context.SetAnswer(new(EndpointAnswer.ERROR_CODE, Messages.NOT_INITED_ERROR));
-                    else
-                    {
-                        if (await ActionsJobber.Instance.ExecuteTask(task) is not ActionsJobber.FindActionsJobberTask.FindActionsJobberTaskResult result) await context.SetAnswer(new(EndpointAnswer.ERROR_CODE, Messages.ERROR));
-                        else await context.SetAnswer(new(EndpointAnswer.SUCCESS_CODE, Messages.ACTIONS_BY_NUMBER_MESSAGE, new() { ["actions"] = result.Actions }));
-                    }
-                });
+                endpoints.MapDefaultControllerRoute();
             });
         }
     }

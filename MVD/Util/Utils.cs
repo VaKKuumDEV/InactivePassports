@@ -21,6 +21,7 @@ namespace MVD.Util
         public static async Task SetAnswer(this HttpContext context, EndpointAnswer answer)
         {
             context.Response.Clear();
+            context.Response.ContentType = "text/plain;charset=utf-8";
             context.Response.StatusCode = answer.Code == EndpointAnswer.SUCCESS_CODE ? 200 : 404;
             await context.Response.WriteAsync(answer.ToString());
         }
