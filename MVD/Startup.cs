@@ -1,48 +1,37 @@
-﻿using MVD.Endpoints;
-using MVD.Jobbers;
+﻿using MVD.Jobbers;
 using MVD.Schedulers;
 using MVD.Util;
 using Newtonsoft.Json;
 using Quartz;
 using Quartz.AspNetCore;
-using System.Data.SQLite;
 
 namespace MVD
 {
     public class Startup
     {
         IConfiguration Configuration { get; }
+        IWebHostEnvironment WebHostEnvironment { get; }
         Config MainConfig { get; } = new();
-        string DbPath { get; }
 
-        public Startup(IConfiguration configuration)
+        public Startup(IWebHostEnvironment env, IConfiguration configuration)
         {
             Configuration = configuration;
+            WebHostEnvironment = env;
 
             string configPath = new FileInfo(Utils.GetAppDir() + "/config.json").FullName;
             if (File.Exists(configPath)) MainConfig = JsonConvert.DeserializeObject<Config>(File.ReadAllText(configPath)) ?? new();
             else File.WriteAllText(configPath, JsonConvert.SerializeObject(MainConfig, Formatting.Indented));
 
-            DbPath = new FileInfo(Utils.GetAppDir() + "/quartznet.db").FullName;
-            if (!File.Exists(DbPath))
+            if (WebHostEnvironment.IsProduction() && !File.Exists(Utils.DbPath))
             {
                 string stockDbPath = new FileInfo(Environment.CurrentDirectory + "/quartznet.db").FullName;
                 Logger.Info("Копирование БД из " + stockDbPath);
-                File.Copy(stockDbPath, DbPath);
+                File.Copy(stockDbPath, Utils.DbPath);
             }
-        }
-
-        public void ConfigureServices(IServiceCollection services)
-        {
-            DateTimeOffset startDate = new DateTime(DateTime.Now.Year, DateTime.Now.Month, DateTime.Now.Day, MainConfig.UpdateTime.Hour, MainConfig.UpdateTime.Minute, 0);
 
             PassportsJobber passportsJobber = new();
             ActionsJobber actionsJobber = new();
             UpdaterJobber updaterJobber = new(MainConfig.Link);
-
-            services.AddSingleton(passportsJobber);
-            services.AddSingleton(actionsJobber);
-            services.AddSingleton(updaterJobber);
 
             Thread tickThread = new(new ThreadStart(() =>
             {
@@ -55,12 +44,20 @@ namespace MVD
                 }
             }));
             tickThread.Start();
+        }
+
+        public void ConfigureServices(IServiceCollection services)
+        {
+            DateTimeOffset startDate = new DateTime(DateTime.Now.Year, DateTime.Now.Month, DateTime.Now.Day, MainConfig.UpdateTime.Hour, MainConfig.UpdateTime.Minute, 0);
 
             services.AddSingleton(Configuration);
 
-            IConfiguration quartsConfiguration = Configuration.GetSection("Quartz");
-            quartsConfiguration["quartz.dataSource.default.connectionString"] = "Data Source=" + DbPath + ";Version=3;";
-            services.Configure<QuartzOptions>(Configuration.GetSection("Quartz"));
+            if (WebHostEnvironment.IsProduction())
+            {
+                IConfiguration quartsConfiguration = Configuration.GetSection("Quartz");
+                quartsConfiguration["quartz.dataSource.default.connectionString"] = "Data Source=" + Utils.DbPath + ";Version=3;";
+                services.Configure<QuartzOptions>(Configuration.GetSection("Quartz"));
+            }
 
             services.AddQuartz(q =>
             {

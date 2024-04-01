@@ -189,6 +189,11 @@ namespace MVD.Jobbers
             _instance = this;
         }
 
+        public List<RecordAction> GetRecords()
+        {
+            return new(actions);
+        }
+
         public override int GetMaxQueueSize() => 3;
     }
 }

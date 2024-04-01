@@ -7,13 +7,13 @@ namespace MVD.Endpoints
     public class PassportEndpoints : Controller
     {
         [HttpGet("/api/check/{id:regex(^\\d{{10}}$)}/")]
-        public async Task Check([FromRoute] string id, PassportsJobber jobber)
+        public async Task Check([FromRoute] string id)
         {
             PassportsJobber.CheckPassportJobberTask task = new(id);
             if (!task.CanExecute()) await HttpContext.SetAnswer(new(EndpointAnswer.ERROR_CODE, Messages.NOT_INITED_ERROR));
             else
             {
-                if (await jobber.ExecuteTask(task) is not PassportsJobber.CheckPassportJobberTask.CheckPassportJobberTaskResult checkResult) await HttpContext.SetAnswer(new(EndpointAnswer.ERROR_CODE, Messages.ERROR));
+                if (await PassportsJobber.Instance.ExecuteTask(task) is not PassportsJobber.CheckPassportJobberTask.CheckPassportJobberTaskResult checkResult) await HttpContext.SetAnswer(new(EndpointAnswer.ERROR_CODE, Messages.ERROR));
                 else
                 {
                     object? containsObj = checkResult.Get();
@@ -29,7 +29,7 @@ namespace MVD.Endpoints
         }
 
         [HttpGet("/api/actions/{dateFrom:regex([[0-9]]{{2}}.[[0-9]]{{2}}.[[0-9]]{{4}}$)}-{dateTo:regex([[0-9]]{{2}}.[[0-9]]{{2}}.[[0-9]]{{4}}$)}/")]
-        public async Task Actions(ActionsJobber jobber, [FromRoute] string dateFrom, [FromRoute] string dateTo)
+        public async Task Actions([FromRoute] string dateFrom, [FromRoute] string dateTo)
         {
             DateTime dateFromObj;
             try
@@ -57,19 +57,19 @@ namespace MVD.Endpoints
             if (!task.CanExecute()) await HttpContext.SetAnswer(new(EndpointAnswer.ERROR_CODE, Messages.NOT_INITED_ERROR));
             else
             {
-                if (await jobber.ExecuteTask(task) is not ActionsJobber.DateActionsJobberTask.DateActionsJobberTaskResult result) await HttpContext.SetAnswer(new(EndpointAnswer.ERROR_CODE, Messages.ERROR));
+                if (await PassportsJobber.Instance.ExecuteTask(task) is not ActionsJobber.DateActionsJobberTask.DateActionsJobberTaskResult result) await HttpContext.SetAnswer(new(EndpointAnswer.ERROR_CODE, Messages.ERROR));
                 else await HttpContext.SetAnswer(new(EndpointAnswer.SUCCESS_CODE, Messages.ACTIONS_BY_DATE_MESSAGE, new() { ["actions"] = result.Actions }));
             }
         }
 
         [HttpGet("/api/find/{id:regex(^\\d{{10}}$)}/")]
-        public async Task Find(ActionsJobber jobber, [FromRoute] string id)
+        public async Task Find([FromRoute] string id)
         {
             ActionsJobber.FindActionsJobberTask task = new(id);
             if (!task.CanExecute()) await HttpContext.SetAnswer(new(EndpointAnswer.ERROR_CODE, Messages.NOT_INITED_ERROR));
             else
             {
-                if (await jobber.ExecuteTask(task) is not ActionsJobber.FindActionsJobberTask.FindActionsJobberTaskResult result) await HttpContext.SetAnswer(new(EndpointAnswer.ERROR_CODE, Messages.ERROR));
+                if (await PassportsJobber.Instance.ExecuteTask(task) is not ActionsJobber.FindActionsJobberTask.FindActionsJobberTaskResult result) await HttpContext.SetAnswer(new(EndpointAnswer.ERROR_CODE, Messages.ERROR));
                 else await HttpContext.SetAnswer(new(EndpointAnswer.SUCCESS_CODE, Messages.ACTIONS_BY_NUMBER_MESSAGE, new() { ["actions"] = result.Actions }));
             }
         }

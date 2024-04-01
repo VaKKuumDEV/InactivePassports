@@ -4,6 +4,8 @@ namespace MVD.Util
 {
     public static class Utils
     {
+        public static readonly string DbPath = new FileInfo(GetAppDir() + "/quartznet.db").FullName;
+
         public static string GetAppDir(string? subDir = null)
         {
             DirectoryInfo dir = new(Environment.CurrentDirectory + "/Data");
